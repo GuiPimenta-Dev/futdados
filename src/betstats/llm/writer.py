@@ -9,6 +9,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from .. import config
+from ..features.angles import is_deep_spine
 from ..models import RankedFact
 from .complete import structured_complete
 from .prompts import WRITER_SYSTEM
@@ -44,12 +45,32 @@ def _render_facts(ranked: list[RankedFact]) -> str:
     return "\n".join(lines)
 
 
+def _format_directive(ranked: list[RankedFact]) -> str:
+    """Escolhe o FORMATO (enxuto/profundo) pelo tipo da espinha — ranked[0], que
+    `_ensure_spine_first` garante ser a tese. Determinístico (princípio #5): a
+    duração não fica na sorte do LLM. Ver config / DESIGN §7."""
+    deep = bool(ranked) and is_deep_spine(ranked[0].fact)
+    lo, hi = config.WRITER_WORDS_DEEP if deep else config.WRITER_WORDS_LEAN
+    if deep:
+        return (
+            f"FORMATO: PROFUNDO ({lo}-{hi} palavras, ~70-85s). A espinha [0] é um "
+            "CONTRASTE DE PROCESSO — DESDOBRE-A em 2 beats (um por lado: quem ataca, "
+            "quem cede), cada um com SEU número, antes dos corroboradores. Use só os "
+            "números que JÁ estão no texto do fato-espinha; nunca invente um terceiro."
+        )
+    return (
+        f"FORMATO: ENXUTO ({lo}-{hi} palavras, ~55s). A espinha não traz mecanismo a "
+        "desdobrar — abra por ela em UM beat e siga com os corroboradores. Não estique."
+    )
+
+
 def write_script(matchup: str, phase: str, ranked: list[RankedFact]) -> ScriptOutput:
     user = (
         f"Confronto: {matchup}\n"
         f"Fase: {phase}\n\n"
+        f"{_format_directive(ranked)}\n\n"
         f"Fatos selecionados (use SOMENTE estes números):\n{_render_facts(ranked)}\n\n"
-        f"Escreva o roteiro de ~1min30 seguindo a estrutura e a regra de honestidade."
+        f"Escreva o roteiro seguindo a estrutura do formato indicado e a regra de honestidade."
     )
     return structured_complete(
         WRITER_SYSTEM,

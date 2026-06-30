@@ -11,6 +11,9 @@ out/
 # Trace por execução
 traces/
 
+# Logs de execução
+*.log
+
 # Python
 __pycache__/
 *.py[cod]

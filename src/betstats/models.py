@@ -65,6 +65,13 @@ class TeamMatchStats:
     fouls: int | None = None
     yellow_cards: int | None = None
     red_cards: int | None = None
+    # --- métricas de PROCESSO (família de contraste técnico, DESIGN §6-bis) ---
+    shot_pct: float | None = None  # % de conversão de finalização (proxy de qualidade de chance)
+    blocked_shots: int | None = None  # finalizações bloqueadas (pressão defensiva)
+    # xG: placeholder. O ESPN NÃO fornece xG de time (só por jogador-líder); depende do
+    # API-Football (`expected_goals`, cobertura WC2026 a verificar). None enquanto ausente.
+    xg: float | None = None  # expected goals criados pelo time no jogo
+    xga: float | None = None  # expected goals concedidos (xG do adversário)
 
 
 @dataclass

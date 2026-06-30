@@ -79,6 +79,13 @@ Copa acaba 19/jul → Brasileirão volta 22/jul.
 | 9 | Base de conhecimento | **Princípios no system prompt** (não RAG) | Enxuto; suficiente pra V1 |
 | 10 | Notícias | **Adiadas pra V2** | Subsistema à parte; reintroduz risco de alucinação |
 | 11 | Stack | **Python** (CLI) | Melhor ecossistema pra dados + LLM; build rápido |
+| 12 | Diferença técnica | **Contraste→mercado (mantém #1), nunca "favorito"** | A diferença técnica vira *contraste estatístico que dá lastro a um mercado*, não predição de vencedor (§6-bis) |
+| 13 | Métrica de contraste | **Processo (xG, finalização, domínio, ritmo), não placar** | Processo é estável em amostra de 3 jogos; placar regride e gera "muitos erros" |
+| 14 | Ajuste de adversário | **Normalizado por força (Elo), em 3 faixas** | Corta a miragem da zebra (xG inflado vs time fraco); faixa grosseira não finge precisão em n=3 |
+| 15 | Fonte de força | **World Football Elo (eloratings/clubelo), só interno** | Contínuo, football-específico, com equivalente de clube pro handoff; **nunca é `Fact`** (§6-bis, travas) |
+| 16 | Coesão | **Engine pré-monta ÂNGULOS (bundles), não fatos soltos** | Coesão vira estrutura de dado, não pedido no prompt — conserta "dicas não coesas" |
+| 17 | Calibração do limiar | **Mini-backtest único sobre `.cache`** | `CONTRAST_GAP_MIN` sai de acerto-de-mercado×força medido, não do chute (§6-bis) |
+| 18 | Conselho de subagentes | **NÃO (adiado)** | Custo/latência altos, retorno baixo: delibera sobre números determinísticos que não pode mudar |
 
 **Itens menores (defaults — ajustáveis):**
 - **Timing:** pré-jogo (preview do confronto). Pós-jogo é fast-follow (V2).
@@ -229,6 +236,94 @@ O ranker agora otimiza **utilidade pra aposta sem perder retenção**:
 
 ---
 
+## 6-bis. Contraste técnico + ângulos (pivot de 30/jun — foco Copa)
+
+**Problema diagnosticado (trace `costa-do-marfim-x-noruega`):** o conteúdo soa genérico e "gera
+muitos erros" por dois motivos a montante do ranker — (1) **amostra = 3** (todo sinal é uma taxa de
+3 jogos que regride: "100%" = "3 de 3"); (2) **fatos mono-temáticos de resultado** (5 variações de
+"festival de gols", sem contraste técnico e sem *uma* história). O ranker é raso **por design**
+(#5: código conta, LLM redige) — o conserto mora no **engine**, não num conselho de subagentes (#18).
+
+### A família de contraste (evolução de `engine.confronto`)
+Hoje `confronto` faz contraste de **resultado** por convergência (#8c) — ruidoso em 3 jogos. A
+evolução tem três regras:
+
+1. **Contraste = assimetria, não dois números altos.** Só acende quando a **força de um time
+   encontra a fraqueza específica do outro** na mesma dimensão. "Os dois marcam muito" é
+   coincidência; "A finaliza 17x/jogo **e** B é quem mais cede finalização" é a diferença técnica
+   do confronto. Exige um **gap mínimo** (`CONTRAST_GAP_MIN`, calibrado — ver abaixo).
+2. **Processo > resultado** (#13). Dimensões estáveis em amostra curta, cada uma → mercado:
+
+   | Dimensão | Lado A (ataca) | Lado B (cede) | Mercado | Fonte |
+   |---|---|---|---|---|
+   | **Finalização** | chutes + on-target/jogo | finalizações sofridas/jogo | over / escanteios / A marca | ESPN (hoje) |
+   | **Conversão** (`shotPct`) | qualidade de finalização | — | over / A marca | ESPN (hoje) |
+   | **Domínio** | posse + escanteios | território cedido | escanteios / pressão | ESPN (hoje) |
+   | **Ritmo** | % gols 2ºT | % gols sofridos 2ºT | gol no 2º tempo | ESPN (hoje) |
+   | **xG** (premium) | xG criado/jogo | xG concedido/jogo | over / A marca | **API-Football (a verificar)** |
+   | **xG vs real** | criou 2.1, fez 0.9 | — | over "atrasado" / A marca | **API-Football (a verificar)** |
+
+   ⚠️ **Correção (30/jun):** o **ESPN não fornece xG de time** (só xG por jogador-líder, não somável;
+   sem `boxscore.players`). A espinha de processo roda **hoje em finalização/conversão/posse**, que
+   o boxscore do ESPN dá team-level. **xG-de-verdade depende do API-Football** (`/fixtures/statistics`,
+   `expected_goals`) — cobertura da WC2026 **a confirmar com 1 chamada live**. Campos `xg`/`xga`
+   entram como `float | None` (placeholder); a família degrada pra finalização quando faltarem.
+
+3. **Encoda direção + magnitude** pro roteirista dizer *"um domina, o outro vaza"* — **sem nunca
+   dizer "favorito"**. Continua relatando os dois números lado a lado, nunca probabilidade combinada.
+
+### Normalização por adversário (Elo — #14, #15)
+xG e finalização inflam contra time fraco. **World Football Elo** (`eloratings`; `clubelo` no
+handoff) entra em **3 faixas** (forte/médio/fraco) pra ponderar/gate cada jogo no cálculo do
+contraste. **Travas não-negociáveis:**
+- **O Elo nunca é um `Fact`.** Entra *só* dentro de `engine.confronto`/`markets`: pondera o jogo e
+  rebaixa `strength`. Não é emitido, não mapeia mercado, **o writer nunca o vê** → "favorito" é
+  *estruturalmente* impossível de vazar, não só proibido por prompt.
+- **Gate, não tempero:** se ≥⅔ da amostra de um contraste vier de adversário "fraco", o contraste
+  não acende (ou acende "moderado"). É isso que mata o erro grosseiro da zebra.
+
+### Ângulos = espinha + seleção ancorada (coesão estrutural — #16) ✅
+Implementado como **ESPINHA determinística** (`features/angles.py`): o código escolhe a TESE do jogo
+— o fato com mercado mais forte, prioridade contraste > confronto > resto, desempate por força e
+amostra. O ranker (#4, opção (a)) recebe a espinha apontada e **ancora a seleção nela** (mercados
+distintos que conversam com a tese), e `_ensure_spine_first` **garante em código** que a espinha
+entra e abre o vídeo — coesão não fica na sorte do LLM. O roteirista abre pela espinha (fato [0]) e
+amarra o resto nela. Como `video/props` já usa `ranked[0]` no frame de abertura, o número-choque do
+hook passa a ser, automaticamente, o contraste mais forte. (O *pré-agrupamento* dos corroboradores
+num struct foi dispensado: a seleção ancorada do ranker já entrega a coesão sem código morto.)
+
+### Calibração do limiar (mini-backtest — #17)
+`CONTRAST_GAP_MIN` **não é chutado**. Um script descartável (`scripts/calibrate.py`) faz replay dos
+jogos já disputados no `.cache` (computando o sinal só com jogos *anteriores* a cada partida) e mede
+**acerto-de-mercado por faixa de força** (não "acertou o vencedor"). "forte" tem que bater bem acima
+de moeda-ao-ar, senão o limiar sobe. Calibração única, não infra contínua.
+
+### Ordem de build (relógio da Copa)
+1. **Métricas de processo no pipeline** — capturar `shotPct`/`blockedShots` (já no boxscore do ESPN)
+   em `TeamMatchStats` + adicionar `xg`/`xga` como `float | None` (placeholder p/ API-Football). A
+   família roda em finalização/conversão/posse hoje; xG é upgrade condicionado à verificação.
+2. **`data/elo.py`** + faixas (isolado). ✅
+3. **`engine.confronto`** → contraste de PROCESSO (finalização + ritmo 2ºT) + gate Elo
+   (`_weak_fraction` = fraco/total; ≥⅔ → rebaixa forte→moderado, moderado→não acende). ✅
+   Conversão/domínio + xG ficam de enriquecimento; **o bundle de ÂNGULO desce pro passo 5**,
+   junto do seu consumidor (ranker/writer) — emitir estrutura sem quem consome é código morto.
+4. **`scripts/calibrate.py`** → fixa os limiares de contraste (`CONTRAST_SHOTS_*`, etc.) e valida
+   força por acerto-de-mercado — **antes de publicar**.
+5. **ranker + writer** ajustados pra ângulos: espinha determinística (`angles.py`) + ranker ancora
+   nela (`_ensure_spine_first` garante topo) + writer abre por ela. ✅
+6. Gerar 2-3 vídeos das oitavas, comparar com o trace antigo, ajustar.
+
+### Métrica de sucesso
+- **Acerto-de-mercado por faixa** no backtest acima de moeda-ao-ar (senão sobe o limiar).
+- Qualitativo: o vídeo soa como **análise** ("A domina e cria, B vaza → over e A-marcar com lastro
+  de processo"), não 5 stats soltas de 3 jogos.
+
+### NÃO fazer agora (fica pro Brasileirão, onde amostra e paridade são maiores)
+Conselho deliberativo de subagentes (#18); Elo/ranking no roteiro; janela estendida/eliminatórias;
+normalização contínua fina.
+
+---
+
 ## 7. Roteirista (LLM #2) — regras
 
 **Regra de honestidade (LEI — nível B, reescrita no pivot de 29/jun):**
@@ -255,22 +350,34 @@ O ranker agora otimiza **utilidade pra aposta sem perder retenção**:
 - **Onde mora o calor:** **verbos vivos** ("a Croácia tranca", "a rede balança") + **1 linha de
   contraste** afiado por vídeo (ataque-de-um × defesa-do-outro). Personalidade sem gastar segundo.
 - **Cobrir 4-5 mercados distintos e fortes** — qualidade acima de volume; não entupir com stat banal
-  só pra encher. Quem assiste sai com uma lista enxuta e confiável de mercados. (O ranker entrega
-  `TOP_N_INSIGHTS=5` fatos; cada fato extra ≈ +9s de vídeo narrado.)
+  só pra encher. Quem assiste sai com uma lista enxuta e confiável de mercados. (No enxuto o ranker
+  entrega `TOP_N_INSIGHTS=5` fatos; cada fato extra ≈ +9s de vídeo narrado.)
 - **Força do sinal dita junto, em 1-2 palavras** (LEI): "forte" → tom de confiança; "moderado" →
   uma palavra de cautela ("tendência leve"). Proibido frase-disclaimer ("trato como inclinação, não
   certeza").
 
-**Estrutura (~55s, enxuta):**
-1. **Gancho** (0-3s): o **número-choque primeiro**, seco, zero aquecimento — o dado mais extremo é a
-   primeira coisa dita; contexto e mercado vêm logo depois.
-2. **Corpo** (3-4 beats, nunca mais que 4): um beat por estatística+mercado, do sinal mais forte ao
-   mais fraco; contraste ataque-de-um × defesa-do-outro quando os números conversam. Beats curtos.
-3. **Fecho/CTA**: UMA frase — amarra 2-3 mercados acesos **+ 1 pergunta real** curta (puxa
-   comentário — o sinal de algoritmo mais forte do TikTok).
+**Duração ELÁSTICA orientada por sinal (decisão de 30/jun — substitui o ~55s fixo):**
+A duração não é fixa: ela é escolhida **em código** (princípio #5) pelo **tipo da espinha** (`ranked[0]`),
+via `angles.is_deep_spine`. Não se monetiza vídeo raso — só os jogos com contraste técnico real ganham
+o formato longo (faixa monetizável do TikTok, >1min); jogos magros ficam curtos e crescem por retenção.
+
+| Formato | Gatilho (espinha) | `TOP_N` | Palavras | Duração | Monetiza |
+|---|---|---|---|---|---|
+| **ENXUTO** | `confronto:*` / taxa solta (sem mecanismo a abrir) | `TOP_N_INSIGHTS=5` | `WRITER_WORDS_LEAN` (110-140) | ~55s | não |
+| **PROFUNDO** | `contraste:*` de processo (carrega o "por quê") | `TOP_N_DEEP=7` | `WRITER_WORDS_DEEP` (150-190) | ~70-85s | sim |
+
+**Estrutura:**
+1. **Gancho** (0-3s, igual nos dois): o **número-choque primeiro**, seco, zero aquecimento — o dado
+   mais extremo é a primeira coisa dita; contexto e mercado vêm logo depois.
+2. **Corpo:**
+   - ENXUTO: 3-4 beats (nunca mais que 4), um por estatística+mercado, do sinal mais forte ao mais fraco.
+   - PROFUNDO: a espinha de contraste é **desdobrada em 2 beats** (lado que ataca × lado que cede, cada
+     um com SEU número) + 2-3 corroboradores → até ~6 beats. A profundidade vem de **abrir a tese**, não
+     de raspar mais mercado fraco. Trava: só cita números que já estão no texto do fato-espinha.
+3. **Fecho/CTA**: UMA frase — amarra 2-3 mercados acesos **+ pergunta ANCORADA na tensão do jogo**
+   (dilema A-ou-B derivado da espinha; nunca o "Qual você pega?" fixo). Força o espectador a escolher um
+   lado → debate → comentário, o sinal de algoritmo mais forte do TikTok.
 4. Entrega também: **título**, **legenda** (listando os mercados) e **hashtags**.
-- Tamanho-alvo: **110-140 palavras** (a fala alonga os números — "100%" → "cem por cento" —, então
-  passar disso estoura os ~55s e derruba retenção).
 
 **Tom:** analista que manja, denso em número mas vivo — "enxuto com calor"; PT-BR; sem
 sensacionalismo, sem empolgação de influencer, sem achismo.
@@ -306,8 +413,10 @@ empacotados por jogo. O `.md` (roteiro) vira referência dentro da pasta. Tudo o
 4. **`run.py`** orquestra: render `BetVideo` → **`loudnorm`** (ffmpeg, I=-14 LUFS, TP=-1.5, 48kHz
    estéreo, faststart) → render still `Thumbnail` → empacota.
 
-**Tom calibrado pro vídeo:** ~55s = `TOP_N_INSIGHTS=5` fatos → hook + ~4 beats + cta. A fala **alonga
-os números** ("100%"→"cem por cento"), por isso o alvo de palavras-escritas é 110-140 (ver §7).
+**Tom calibrado pro vídeo:** duração **elástica** pelo tipo de espinha (ver §7) — enxuto (`TOP_N_INSIGHTS=5`
+→ hook + ~4 beats + cta, ~55s) ou profundo (`TOP_N_DEEP=7` → hook + espinha desdobrada + corroboradores,
+~70-85s monetizável). A fala **alonga os números** ("100%"→"cem por cento"), por isso o alvo de
+palavras-escritas é 110-140 (enxuto) / 150-190 (profundo).
 
 **Marca (FutDados):** a logo fonte (`logo.png`, fundo preto) é convertida pra **transparente** por
 luminance-key do ffmpeg (`publish.ensure_brand` → `video/public/logo.png`); usada como watermark no

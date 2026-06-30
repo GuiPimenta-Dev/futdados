@@ -135,6 +135,15 @@ class APIFootballProvider(DataProvider):
         except (ValueError, TypeError):
             return None
 
+    @staticmethod
+    def _stat_float(value: Any) -> float | None:
+        if value is None:
+            return None
+        try:
+            return float(str(value).replace("%", "").strip())
+        except (ValueError, TypeError):
+            return None
+
     def _stats(self, fixture_id: int) -> dict[int, TeamMatchStats]:
         out: dict[int, TeamMatchStats] = {}
         for block in self._get("/fixtures/statistics", {"fixture": fixture_id}):
@@ -153,6 +162,9 @@ class APIFootballProvider(DataProvider):
                 fouls=self._stat_int(by_type.get("Fouls")),
                 yellow_cards=self._stat_int(by_type.get("Yellow Cards")),
                 red_cards=self._stat_int(by_type.get("Red Cards")),
+                blocked_shots=self._stat_int(by_type.get("Blocked Shots")),
+                # xG: API-Football expõe `expected_goals` em ligas cobertas (WC2026 a verificar).
+                xg=self._stat_float(by_type.get("expected_goals")),
             )
         return out
 

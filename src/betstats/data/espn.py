@@ -166,15 +166,28 @@ class ESPNProvider(DataProvider):
                 except (ValueError, TypeError):
                     return None
 
+            def real(key: str) -> float | None:
+                v = by.get(key)
+                if v is None:
+                    return None
+                try:
+                    return float(str(v).replace("%", "").strip())
+                except (ValueError, TypeError):
+                    return None
+
             out[tid] = TeamMatchStats(
                 team_id=tid,
                 shots_total=num("totalShots"),
                 shots_on_goal=num("shotsOnTarget"),
-                possession_pct=float(num("possessionPct")) if num("possessionPct") is not None else None,
+                possession_pct=real("possessionPct"),
                 corners=num("wonCorners"),
                 fouls=num("foulsCommitted"),
                 yellow_cards=num("yellowCards"),
                 red_cards=num("redCards"),
+                shot_pct=real("shotPct"),
+                blocked_shots=num("blockedShots"),
+                # ESPN não dá xG de time hoje; captura defensiva caso passe a dar (None se ausente).
+                xg=real("expectedGoals"),
             )
         return out
 

@@ -24,4 +24,5 @@ export type Props = {
   durationSec: number;
   source: string;
   segments: SegmentT[];
+  thumbHook?: string;
 };

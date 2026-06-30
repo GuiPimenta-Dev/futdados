@@ -59,6 +59,15 @@ API_FOOTBALL_HOST = os.getenv(
 # vídeo de ~55s: 5 fatos → hook (1) + ~4 beats → ~6 cenas. Subir aqui ALONGA o
 # vídeo (cada fato extra ≈ +9s narrado); descer encurta.
 TOP_N_INSIGHTS = 5
+# Duração ELÁSTICA orientada por sinal (DESIGN §7): a espinha de CONTRASTE de
+# processo carrega o "por quê" (o mecanismo do confronto) → merece o formato
+# PROFUNDO (mais corroboradores + teto de palavras maior → ~70-85s, faixa
+# monetizável do TikTok). Espinha de convergência/taxa não tem mecanismo a
+# desdobrar → fica no enxuto. O tipo da espinha (ranked[0]) escolhe o perfil em
+# CÓDIGO (princípio #5) — ver angles.is_deep_spine. NÃO se monetiza vídeo raso.
+TOP_N_DEEP = 7
+WRITER_WORDS_LEAN = (110, 140)  # enxuto (~55s)
+WRITER_WORDS_DEEP = (150, 190)  # profundo (~70-85s)
 # Amostra mínima para um fato de TAXA (%) ser considerado válido.
 # Fatos binários "duros" (ex.: clean sheet em todos os jogos) passam mesmo abaixo.
 MIN_SAMPLE_FOR_RATE = 3
@@ -76,6 +85,32 @@ MARKET_STRONG_PCT = float(os.getenv("BETSTATS_MARKET_STRONG_PCT", "80"))
 # Convergência de confronto: cada lado precisa desta taxa pro mercado do jogo
 # (over/BTTS) acender. NUNCA vira probabilidade combinada — só as duas taxas.
 MARKET_CONVERGENCE_PCT = float(os.getenv("BETSTATS_MARKET_CONVERGENCE_PCT", "60"))
+
+# --- Força de adversário (Elo — DESIGN §6-bis, decisões #14/#15) -------------
+# Fonte: World Football Elo (eloratings.net). Usado SÓ INTERNAMENTE pra ponderar
+# /gate a família de contraste por qualidade de adversário. NUNCA é um Fact, nunca
+# vira mercado, o roteirista nunca o vê. Faixas grosseiras (não número fino) — em
+# amostra de 3 jogos, peso contínuo finge precisão que não existe.
+ELO_BASE = os.getenv("BETSTATS_ELO_BASE", "https://www.eloratings.net")
+# Faixas por rating: forte se Elo >= STRONG; fraco se Elo < WEAK; senão médio.
+# Defaults pra seleções (top ~20 ≈ 1900+; cauda < 1700). Tunáveis / calibráveis.
+ELO_TIER_STRONG = float(os.getenv("BETSTATS_ELO_TIER_STRONG", "1900"))
+ELO_TIER_WEAK = float(os.getenv("BETSTATS_ELO_TIER_WEAK", "1700"))
+
+# --- Família de contraste técnico (DESIGN §6-bis, decisão #13/#16) -----------
+# Contraste = ASSIMETRIA (força de um × fraqueza do outro), não dois números altos.
+# Roda em métricas de PROCESSO (estáveis em amostra curta). Limiares são defaults
+# sensatos — serão FIXADOS pelo mini-backtest do passo 4, não pelo chute.
+CONTRAST_MIN_SAMPLE = int(os.getenv("BETSTATS_CONTRAST_MIN_SAMPLE", "3"))
+# Finalização: chutes/jogo pra "volume alto" (acende) e pra "forte".
+CONTRAST_SHOTS_HIGH = float(os.getenv("BETSTATS_CONTRAST_SHOTS_HIGH", "12"))
+CONTRAST_SHOTS_STRONG = float(os.getenv("BETSTATS_CONTRAST_SHOTS_STRONG", "15"))
+# Ritmo: % de gols (feitos de um lado, sofridos do outro) no 2º tempo pra acender.
+CONTRAST_2H_HIGH = float(os.getenv("BETSTATS_CONTRAST_2H_HIGH", "60"))
+# Gate de adversário fraco (Elo): se a fração da amostra contra time 'fraco' for
+# >= isto, o sinal cai um nível (forte→moderado, moderado→não acende). Mata a
+# miragem da zebra (goleou time fraco → "domínio" que não existe).
+CONTRAST_WEAK_FRAC = float(os.getenv("BETSTATS_CONTRAST_WEAK_FRAC", "0.67"))
 
 # Disclaimer obrigatório (garantido pelo código — ver output.py). Sempre presente.
 DISCLAIMER = (

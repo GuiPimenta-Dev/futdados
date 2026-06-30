@@ -31,6 +31,7 @@ def make_match(
     poss_for: float | None = None,
     reds_for: int | None = None,
     poss_against: float | None = None,
+    shots_against: int | None = None,
     fid: int = 1,
     rnd: str = "Grupo",
 ) -> Match:
@@ -53,8 +54,10 @@ def make_match(
             possession_pct=poss_for,
             red_cards=reds_for,
         )
-    if poss_against is not None:
-        stats[opp_id] = TeamMatchStats(team_id=opp_id, possession_pct=poss_against)
+    if poss_against is not None or shots_against is not None:
+        stats[opp_id] = TeamMatchStats(
+            team_id=opp_id, possession_pct=poss_against, shots_total=shots_against
+        )
 
     return Match(
         fixture_id=fid,
