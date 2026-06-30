@@ -1,0 +1,26 @@
+# Segredos
+.env
+
+# Cache de dados da API
+.cache/
+*.cache.json
+
+# Saídas geradas
+out/
+
+# Trace por execução
+traces/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# OS
+.DS_Store
+
+video/node_modules/
