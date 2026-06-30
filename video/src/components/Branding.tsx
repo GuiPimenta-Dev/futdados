@@ -2,7 +2,7 @@ import React from "react";
 import { Img, staticFile } from "remotion";
 
 // Sinais de credibilidade (decisão da sessão): selo de fonte+amostra e a LOGO
-// FutDados como marca d'água. Tudo acima dos 15% de baixo (zona da UI do TikTok).
+// Raio X do Jogo como marca d'água. Tudo acima dos 15% de baixo (zona da UI do TikTok).
 export const Branding: React.FC<{ source: string; matchup: string }> = ({ source }) => {
   return (
     <>
@@ -21,17 +21,17 @@ export const Branding: React.FC<{ source: string; matchup: string }> = ({ source
       >
         ⓘ Dados: {source}
       </div>
-      {/* logo FutDados (marca d'água) */}
+      {/* logo Raio X do Jogo (marca d'água, horizontal) */}
       <Img
         src={staticFile("logo.png")}
         style={{
           position: "absolute",
-          top: 28,
-          right: 28,
-          width: 230,
-          height: 230,
+          top: 24,
+          right: 22,
+          width: 240,
+          height: 120,
           objectFit: "contain",
-          opacity: 0.92,
+          opacity: 0.9,
         }}
       />
     </>

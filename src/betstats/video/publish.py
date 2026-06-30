@@ -15,14 +15,15 @@ import unicodedata
 
 from .. import config
 
-# Logo de marca: o fonte (logo.png na raiz) tem fundo preto; o vídeo precisa de
-# uma versão TRANSPARENTE. Geramos uma vez em video/public/logo.png por
-# luminance-key (alpha = brilho), preservando a arte branca+verde com borda limpa.
-LOGO_SRC = "logo.png"
+# Logo de marca: o fonte (logo.jpg na raiz) tem fundo cinza-escuro; o vídeo
+# precisa de uma versão TRANSPARENTE. Geramos uma vez em video/public/logo.png
+# por threshold de luminância (alpha=0 abaixo de ~60 de brilho, sobe rápido),
+# zerando o fundo escuro e preservando a arte verde+branca com borda limpa.
+LOGO_SRC = "logo.jpg"
 LOGO_DST = os.path.join("video", "public", "logo.png")
 _LOGO_KEY = (
     "format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':"
-    "a='min(255,1.6*max(max(r(X,Y),g(X,Y)),b(X,Y)))'"
+    "a='clip((max(max(r(X,Y),g(X,Y)),b(X,Y))-60)*4,0,255)'"
 )
 
 

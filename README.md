@@ -88,4 +88,4 @@ Dois caminhos, escolhidos por `BETSTATS_LLM_BACKEND`:
 - **`api`** — SDK Anthropic com `ANTHROPIC_API_KEY` (cobrado). Usa `messages.parse()` com schema. Padrão `claude-sonnet-4-6`; para caprichar no texto: `export BETSTATS_WRITER_MODEL=claude-opus-4-8`.
 
 Em ambos, o ranqueador escolhe fatos por índice e o roteirista valida via Pydantic — o número nunca é reescrito pelo LLM.
-# futdados
+# Raio X do Jogo

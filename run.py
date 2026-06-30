@@ -185,7 +185,7 @@ def _make_provider():
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="betstats — curiosidades estatísticas (Copa 2026)")
+    ap = argparse.ArgumentParser(description="Raio X do Jogo — curiosidades estatísticas (Copa 2026)")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--demo", action="store_true", help="roda no dataset sintético (offline)")
     g.add_argument("--fixture", type=int, metavar="ID", help="ID do jogo na API-Football")

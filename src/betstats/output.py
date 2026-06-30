@@ -41,7 +41,7 @@ def render_full(
     )
     return f"""# {matchup} — {phase}
 
-> FutDados — números que explicam o jogo. Confira a pauta antes de gravar/postar.
+> Raio X do Jogo — números que explicam o jogo. Confira a pauta antes de gravar/postar.
 
 ## Roteiro (~1min)
 

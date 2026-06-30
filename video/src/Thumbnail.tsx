@@ -145,16 +145,16 @@ export const Thumbnail: React.FC<Props> = (props) => {
         </div>
       ) : null}
 
-      {/* logo FutDados */}
+      {/* logo Raio X do Jogo (horizontal) */}
       <Img
         src={staticFile("logo.png")}
         style={{
           position: "absolute",
-          bottom: 70,
+          bottom: 80,
           left: "50%",
           transform: "translateX(-50%)",
-          width: 300,
-          height: 300,
+          width: 640,
+          height: 330,
           objectFit: "contain",
         }}
       />

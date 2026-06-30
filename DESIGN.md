@@ -408,7 +408,7 @@ empacotados por jogo. O `.md` (roteiro) vira referência dentro da pasta. Tudo o
 3. **Remotion** (`video/`, React) — consome `props.json`:
    - `Background` (verde brandado), `Crests` (escudos via URL do provider, fallback inicial),
      `StatCard` (card por beat + **slam no gancho**), `Captions` (bloco com palavra ativa acesa),
-     `Branding` (selo fonte+amostra + **logo FutDados**). Composição `BetVideo` (vídeo) e `Thumbnail` (still).
+     `Branding` (selo fonte+amostra + **logo Raio X do Jogo**). Composição `BetVideo` (vídeo) e `Thumbnail` (still).
    - Render config: **png + yuv420p** (compatibilidade universal — NÃO usar jpeg/yuvj).
 4. **`run.py`** orquestra: render `BetVideo` → **`loudnorm`** (ffmpeg, I=-14 LUFS, TP=-1.5, 48kHz
    estéreo, faststart) → render still `Thumbnail` → empacota.
@@ -418,8 +418,8 @@ empacotados por jogo. O `.md` (roteiro) vira referência dentro da pasta. Tudo o
 ~70-85s monetizável). A fala **alonga os números** ("100%"→"cem por cento"), por isso o alvo de
 palavras-escritas é 110-140 (enxuto) / 150-190 (profundo).
 
-**Marca (FutDados):** a logo fonte (`logo.png`, fundo preto) é convertida pra **transparente** por
-luminance-key do ffmpeg (`publish.ensure_brand` → `video/public/logo.png`); usada como watermark no
+**Marca (Raio X do Jogo):** a logo fonte (`logo.jpg`, fundo cinza-escuro) é convertida pra **transparente** por
+threshold de luminância do ffmpeg (`publish.ensure_brand` → `video/public/logo.png`); usada como watermark no
 vídeo e na thumbnail. Áudio/SFX são **sintéticos** (`sfx.py`, stdlib) — zero licença; trocar `bed.wav`
 por trilha real é só substituir o arquivo.
 
